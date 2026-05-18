@@ -1,0 +1,5 @@
+.venv/
+__pycache__/
+*.pyc
+data/exchange_rates.json
+.env

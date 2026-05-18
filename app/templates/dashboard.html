@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BCV — Tipos de Cambio</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ── Reset & tokens ──────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #050a0f;
+      --surface:   #0b1420;
+      --card:      #0f1e2e;
+      --border:    #1a3048;
+      --accent:    #00d4ff;
+      --accent2:   #ffd166;
+      --success:   #06d6a0;
+      --danger:    #ef476f;
+      --text:      #e8f4fd;
+      --muted:     #5a7a8f;
+      --font-head: 'Syne', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+      --radius:    12px;
+      --glow:      0 0 24px rgba(0, 212, 255, 0.15);
+    }
+
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-mono);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Animated grid background ────────────────────────────────────── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0,212,255,.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,212,255,.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── Layout ──────────────────────────────────────────────────────── */
+    .wrapper {
+      position: relative;
+      z-index: 1;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem 4rem;
+    }
+
+    /* ── Header ──────────────────────────────────────────────────────── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.5rem 2rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      margin-bottom: 2rem;
+      box-shadow: var(--glow);
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .logo-badge {
+      width: 44px;
+      height: 44px;
+      background: linear-gradient(135deg, var(--accent), #0077aa);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-head);
+      font-weight: 800;
+      font-size: 0.85rem;
+      color: var(--bg);
+      letter-spacing: -.5px;
+    }
+
+    .logo-text h1 {
+      font-family: var(--font-head);
+      font-weight: 800;
+      font-size: 1.15rem;
+      color: var(--text);
+      letter-spacing: -0.5px;
+    }
+
+    .logo-text span {
+      font-size: 0.7rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+    }
+
+    .header-meta {
+      text-align: right;
+      font-size: 0.7rem;
+      color: var(--muted);
+      letter-spacing: .5px;
+    }
+
+    .header-meta strong {
+      display: block;
+      color: var(--accent);
+      font-size: 0.85rem;
+    }
+
+    /* ── Refresh button ──────────────────────────────────────────────── */
+    .btn-refresh {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.65rem 1.5rem;
+      background: transparent;
+      color: var(--accent);
+      border: 1.5px solid var(--accent);
+      border-radius: 8px;
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      letter-spacing: 0.5px;
+      transition: all .2s ease;
+      text-transform: uppercase;
+    }
+
+    .btn-refresh:hover {
+      background: var(--accent);
+      color: var(--bg);
+      box-shadow: 0 0 20px rgba(0,212,255,.4);
+    }
+
+    .btn-refresh:disabled {
+      opacity: .5;
+      cursor: not-allowed;
+    }
+
+    .btn-refresh svg {
+      width: 15px;
+      height: 15px;
+      transition: transform .4s ease;
+    }
+
+    .btn-refresh.loading svg {
+      animation: spin .7s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Alert / Toast ───────────────────────────────────────────────── */
+    #alert {
+      display: none;
+      padding: .85rem 1.2rem;
+      border-radius: 8px;
+      font-size: .8rem;
+      margin-bottom: 1.5rem;
+      border: 1px solid;
+      animation: fadeIn .3s ease;
+    }
+
+    #alert.success {
+      background: rgba(6,214,160,.08);
+      border-color: var(--success);
+      color: var(--success);
+    }
+
+    #alert.error {
+      background: rgba(239,71,111,.08);
+      border-color: var(--danger);
+      color: var(--danger);
+    }
+
+    @keyframes fadeIn { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:none; } }
+
+    /* ── Section title ───────────────────────────────────────────────── */
+    .section-label {
+      font-family: var(--font-head);
+      font-size: .65rem;
+      letter-spacing: 2.5px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 1rem;
+    }
+
+    /* ── Currency cards ──────────────────────────────────────────────── */
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2.5rem;
+    }
+
+    .currency-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.4rem 1.2rem;
+      position: relative;
+      overflow: hidden;
+      transition: border-color .2s, box-shadow .2s;
+    }
+
+    .currency-card:hover {
+      border-color: var(--accent);
+      box-shadow: var(--glow);
+    }
+
+    .currency-card::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--accent), transparent);
+      opacity: 0;
+      transition: opacity .2s;
+    }
+
+    .currency-card:hover::after { opacity: 1; }
+
+    .currency-card.usd::after { background: linear-gradient(90deg, #85e89d, transparent); }
+    .currency-card.eur::after { background: linear-gradient(90deg, #79b8ff, transparent); }
+    .currency-card.cny::after { background: linear-gradient(90deg, #f97583, transparent); }
+    .currency-card.try::after { background: linear-gradient(90deg, #ffab70, transparent); }
+    .currency-card.rub::after { background: linear-gradient(90deg, #b392f0, transparent); }
+
+    .card-symbol {
+      font-size: 1.4rem;
+      margin-bottom: .3rem;
+    }
+
+    .card-name {
+      font-size: .65rem;
+      letter-spacing: 2px;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: .7rem;
+      font-family: var(--font-head);
+    }
+
+    .card-value {
+      font-family: var(--font-mono);
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: -.5px;
+    }
+
+    .card-value.no-data {
+      color: var(--muted);
+      font-size: .85rem;
+    }
+
+    .card-sub {
+      font-size: .65rem;
+      color: var(--muted);
+      margin-top: .25rem;
+    }
+
+    /* ── Meta row ────────────────────────────────────────────────────── */
+    .meta-row {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      margin-bottom: 2.5rem;
+    }
+
+    .meta-pill {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 30px;
+      padding: .4rem 1rem;
+      font-size: .7rem;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: .4rem;
+    }
+
+    .meta-pill strong { color: var(--text); }
+
+    .dot {
+      width: 7px;
+      height: 7px;
+      background: var(--success);
+      border-radius: 50%;
+      box-shadow: 0 0 6px var(--success);
+      display: inline-block;
+    }
+
+    /* ── History table ───────────────────────────────────────────────── */
+    .table-wrap {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .75rem;
+    }
+
+    thead {
+      background: var(--surface);
+    }
+
+    th {
+      padding: .85rem 1rem;
+      text-align: left;
+      font-family: var(--font-head);
+      font-size: .62rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+
+    td {
+      padding: .8rem 1rem;
+      color: var(--text);
+      border-bottom: 1px solid rgba(26,48,72,.5);
+      white-space: nowrap;
+      font-family: var(--font-mono);
+    }
+
+    tr:last-child td { border-bottom: none; }
+
+    tbody tr:hover td { background: rgba(0,212,255,.03); }
+
+    .date-cell {
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .null-cell { color: var(--muted); }
+
+    /* ── Empty state ─────────────────────────────────────────────────── */
+    .empty-state {
+      text-align: center;
+      padding: 4rem 2rem;
+      color: var(--muted);
+    }
+
+    .empty-state p { font-size: .85rem; margin-top: .5rem; }
+    .empty-state .big { font-size: 2.5rem; }
+
+    /* ── Footer ──────────────────────────────────────────────────────── */
+    footer {
+      text-align: center;
+      margin-top: 3rem;
+      font-size: .65rem;
+      color: var(--muted);
+      letter-spacing: .5px;
+    }
+
+    footer a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    /* ── Responsive ──────────────────────────────────────────────────── */
+    @media (max-width: 600px) {
+      header { flex-direction: column; text-align: center; }
+      .header-meta { text-align: center; }
+      th, td { padding: .65rem .6rem; font-size: .68rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="wrapper">
+
+  <!-- ── Header ─────────────────────────────────────────────────────── -->
+  <header>
+    <div class="logo">
+      <div class="logo-badge">BCV</div>
+      <div class="logo-text">
+        <h1>Tipos de Cambio</h1>
+        <span>Banco Central de Venezuela</span>
+      </div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:1.5rem;flex-wrap:wrap;">
+      {% if latest %}
+      <div class="header-meta">
+        <strong>{{ latest.date }}</strong>
+        Última actualización: {{ latest.timestamp[11:16] }}
+      </div>
+      {% endif %}
+
+      <button class="btn-refresh" id="refreshBtn" onclick="doRefresh()">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/>
+          <path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/>
+        </svg>
+        Actualizar desde BCV
+      </button>
+    </div>
+  </header>
+
+  <!-- ── Alert ──────────────────────────────────────────────────────── -->
+  <div id="alert"></div>
+
+  <!-- ── Latest rates ───────────────────────────────────────────────── -->
+  {% if latest %}
+  <p class="section-label">&#x25A0; Última consulta — {{ latest.date }}</p>
+
+  <div class="cards-grid">
+
+    <div class="currency-card usd">
+      <div class="card-symbol">$</div>
+      <div class="card-name">USD &mdash; Dólar</div>
+      {% if latest.rates.USD is not none %}
+        <div class="card-value">{{ "%.8f" | format(latest.rates.USD) }}</div>
+      {% else %}
+        <div class="card-value no-data">No disponible</div>
+      {% endif %}
+      <div class="card-sub">Bs. por 1 USD</div>
+    </div>
+
+    <div class="currency-card eur">
+      <div class="card-symbol">€</div>
+      <div class="card-name">EUR &mdash; Euro</div>
+      {% if latest.rates.EUR is not none %}
+        <div class="card-value">{{ "%.8f" | format(latest.rates.EUR) }}</div>
+      {% else %}
+        <div class="card-value no-data">No disponible</div>
+      {% endif %}
+      <div class="card-sub">Bs. por 1 EUR</div>
+    </div>
+
+    <div class="currency-card cny">
+      <div class="card-symbol">¥</div>
+      <div class="card-name">CNY &mdash; Yuan</div>
+      {% if latest.rates.CNY is not none %}
+        <div class="card-value">{{ "%.8f" | format(latest.rates.CNY) }}</div>
+      {% else %}
+        <div class="card-value no-data">No disponible</div>
+      {% endif %}
+      <div class="card-sub">Bs. por 1 CNY</div>
+    </div>
+
+    <div class="currency-card try">
+      <div class="card-symbol">₺</div>
+      <div class="card-name">TRY &mdash; Lira</div>
+      {% if latest.rates.TRY is not none %}
+        <div class="card-value">{{ "%.8f" | format(latest.rates.TRY) }}</div>
+      {% else %}
+        <div class="card-value no-data">No disponible</div>
+      {% endif %}
+      <div class="card-sub">Bs. por 1 TRY</div>
+    </div>
+
+    <div class="currency-card rub">
+      <div class="card-symbol">₽</div>
+      <div class="card-name">RUB &mdash; Rublo</div>
+      {% if latest.rates.RUB is not none %}
+        <div class="card-value">{{ "%.8f" | format(latest.rates.RUB) }}</div>
+      {% else %}
+        <div class="card-value no-data">No disponible</div>
+      {% endif %}
+      <div class="card-sub">Bs. por 1 RUB</div>
+    </div>
+
+  </div>
+
+  <!-- meta pills -->
+  <div class="meta-row">
+    <div class="meta-pill"><span class="dot"></span> Fuente: <strong>bcv.org.ve</strong></div>
+    <div class="meta-pill">ID Registro: <strong>#{{ latest.id }}</strong></div>
+    <div class="meta-pill">Timestamp: <strong>{{ latest.timestamp }}</strong></div>
+  </div>
+
+  {% else %}
+  <div class="empty-state">
+    <div class="big">📊</div>
+    <p>No hay datos aún. Presiona <strong>Actualizar desde BCV</strong> para obtener las tasas.</p>
+  </div>
+  {% endif %}
+
+  <!-- ── History table ───────────────────────────────────────────────── -->
+  <p class="section-label">&#x25A0; Historial — Últimas {{ history|length }} fechas</p>
+
+  <div class="table-wrap">
+    {% if history %}
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Fecha</th>
+          <th>USD</th>
+          <th>EUR</th>
+          <th>CNY</th>
+          <th>TRY</th>
+          <th>RUB</th>
+          <th>Actualizado</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for rec in history %}
+        <tr>
+          <td class="null-cell">{{ rec.id }}</td>
+          <td class="date-cell">{{ rec.date }}</td>
+          <td>{% if rec.rates.USD is not none %}{{ "%.5f" | format(rec.rates.USD) }}{% else %}<span class="null-cell">—</span>{% endif %}</td>
+          <td>{% if rec.rates.EUR is not none %}{{ "%.5f" | format(rec.rates.EUR) }}{% else %}<span class="null-cell">—</span>{% endif %}</td>
+          <td>{% if rec.rates.CNY is not none %}{{ "%.5f" | format(rec.rates.CNY) }}{% else %}<span class="null-cell">—</span>{% endif %}</td>
+          <td>{% if rec.rates.TRY is not none %}{{ "%.5f" | format(rec.rates.TRY) }}{% else %}<span class="null-cell">—</span>{% endif %}</td>
+          <td>{% if rec.rates.RUB is not none %}{{ "%.5f" | format(rec.rates.RUB) }}{% else %}<span class="null-cell">—</span>{% endif %}</td>
+          <td class="null-cell">{{ rec.timestamp[11:16] }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">
+      <p>Sin registros históricos todavía.</p>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- ── Footer ─────────────────────────────────────────────────────── -->
+  <footer>
+    <p>
+      BCV Exchange API v1.0 &nbsp;·&nbsp;
+      <a href="/docs" target="_blank">Swagger Docs</a> &nbsp;·&nbsp;
+      <a href="/api/v1/rates/latest" target="_blank">JSON Latest</a> &nbsp;·&nbsp;
+      <a href="/api/v1/rates/history" target="_blank">JSON History</a>
+    </p>
+    <p style="margin-top:.4rem;">Datos oficiales del Banco Central de Venezuela</p>
+  </footer>
+
+</div><!-- /wrapper -->
+
+<script>
+async function doRefresh() {
+  const btn   = document.getElementById('refreshBtn');
+  const alert = document.getElementById('alert');
+
+  btn.disabled = true;
+  btn.classList.add('loading');
+  btn.querySelector('span') && (btn.querySelector('span').textContent = 'Consultando…');
+  alert.style.display = 'none';
+
+  try {
+    const res  = await fetch('/api/v1/rates/refresh', { method: 'POST' });
+    const data = await res.json();
+
+    if (res.ok && data.success) {
+      showAlert(data.message, 'success');
+      // Reload the page to reflect new data
+      setTimeout(() => location.reload(), 900);
+    } else {
+      const msg = data.detail || data.message || 'Error desconocido';
+      showAlert('Error: ' + msg, 'error');
+    }
+  } catch (err) {
+    showAlert('Error de red: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.classList.remove('loading');
+  }
+}
+
+function showAlert(msg, type) {
+  const el = document.getElementById('alert');
+  el.textContent = msg;
+  el.className = type;
+  el.style.display = 'block';
+  if (type === 'success') {
+    setTimeout(() => { el.style.display = 'none'; }, 5000);
+  }
+}
+</script>
+
+</body>
+</html>
