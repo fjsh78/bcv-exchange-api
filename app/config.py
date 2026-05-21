@@ -7,7 +7,7 @@ from pathlib import Path
 # ── Paths ────────────────────────────────────────────────────────────────────
 BASE_DIR   = Path(__file__).resolve().parent.parent
 DATA_DIR   = BASE_DIR / "data"
-DB_FILE    = DATA_DIR / "exchange_rates.json"
+DB_FILE    = DATA_DIR / "exchange_rates.db"
 
 # Ensure data directory exists at import time
 DATA_DIR.mkdir(parents=True, exist_ok=True)

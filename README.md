@@ -46,6 +46,30 @@ uvicorn app.main:app --reload
 
 La aplicación estará disponible en **http://127.0.0.1:8000**.
 
+## Despliegue en Render
+
+El proyecto incluye configuración automática para Render:
+
+### Opción 1: Usar `render.yaml` (recomendado)
+1. Empuja el repositorio a GitHub (incluyendo `render.yaml`).
+2. Crea un nuevo servicio en Render desde tu repositorio.
+3. Render detectará automáticamente `render.yaml` y aplicará la configuración.
+
+### Opción 2: Configuración manual
+1. Empuja tu repositorio a GitHub.
+2. Crea un nuevo servicio web en Render y conéctalo a tu repositorio.
+3. Usa los siguientes comandos:
+   - **Build:** `pip install -r requirements.txt`
+   - **Start:** `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+
+Render instala las dependencias automáticamente y ejecuta la app en el puerto que provee la plataforma.
+
+### Archivos de configuración incluidos
+- **`render.yaml`** — Configuración automática para Render (especifica Python 3.10, comandos de build y start)
+- **`Procfile`** — Compatible con Render y otros PaaS que usan el estándar Heroku
+- **`.gitignore`** — Excluye archivos locales (venv, pycache, `.db`, `.env`)
+
+
 | URL                              | Descripción                                  |
 |----------------------------------|----------------------------------------------|
 | `GET /`                          | Dashboard web                                |
@@ -104,7 +128,7 @@ divisa afectada; el scraper intentará cada estrategia en orden.
 | `BCV_URL`         | `https://www.bcv.org.ve/`     | URL del sitio BCV              |
 | `REQUEST_TIMEOUT` | `15`                          | Timeout de red (segundos)      |
 | `HISTORY_LIMIT`   | `10`                          | Filas mostradas en dashboard   |
-| `DB_FILE`         | `data/exchange_rates.json`    | Ruta de la base de datos       |
+| `DB_FILE`         | `data/exchange_rates.db`      | Ruta de la base de datos       |
 
 ---
 
