@@ -35,13 +35,27 @@ _NUMBER_RE = re.compile(r"[\d]+[,.][\d]+")
 
 
 def _parse_value(raw: str) -> Optional[float]:
-    """Convert BCV-formatted number strings to float."""
-    # BCV uses comma as decimal separator sometimes
-    cleaned = raw.strip().replace(".", "").replace(",", ".")
-    # If there are still multiple dots, keep only first two parts
-    parts = cleaned.split(".")
-    if len(parts) > 2:
-        cleaned = parts[0] + "." + "".join(parts[1:])
+    """Convert numeric strings to float, handling thousands separators."""
+    cleaned = raw.strip()
+    if not cleaned:
+        return None
+
+    cleaned = re.sub(r"[^0-9.,-]", "", cleaned)
+    if not cleaned:
+        return None
+
+    if "," in cleaned and "." in cleaned:
+        last_dot = cleaned.rfind(".")
+        last_comma = cleaned.rfind(",")
+        if last_dot > last_comma:
+            cleaned = cleaned.replace(",", "")
+        else:
+            cleaned = cleaned.replace(".", "").replace(",", ".")
+    elif "," in cleaned:
+        cleaned = cleaned.replace(",", ".")
+    elif cleaned.count(".") > 1:
+        parts = cleaned.split(".")
+        cleaned = "".join(parts[:-1]) + "." + parts[-1]
     try:
         return float(cleaned)
     except ValueError:
@@ -139,7 +153,14 @@ def _fetch_binance_rate() -> Optional[float]:
 
     try:
         price_text = items[0]["adv"]["price"]
-        return _parse_value(str(price_text))
+        value = _parse_value(str(price_text))
+        if value is None:
+            return None
+        # Binance may return the value in a scaled representation.
+        if value > 10000:
+            value = value / 1000
+            logger.debug("Scaled Binance price down by 1000 to %s", value)
+        return value
     except Exception as exc:  # noqa: BLE001
         logger.warning("Could not parse Binance price: %s", exc)
         return None

@@ -492,7 +492,7 @@
       <div class="card-symbol">B</div>
       <div class="card-name">BINANCE &mdash; USDT/VES</div>
       {% if latest.rates.BINANCE is not none %}
-        <div class="card-value">{{ "%.8f" | format(latest.rates.BINANCE) }}</div>
+        <div class="card-value">{{ "%.4f" | format(latest.rates.BINANCE) }}</div>
       {% else %}
         <div class="card-value no-data">No disponible</div>
       {% endif %}
