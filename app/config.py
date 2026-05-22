@@ -64,7 +64,11 @@ CURRENCY_SELECTORS: dict[str, list[dict]] = {
         {"method": "text", "params": {"label": "RUB"}},
     ],
 }
-
+# ── Binance P2P ─────────────────────────────────────────────────────────────
+BINANCE_P2P_URL = "https://p2p.binance.com/bapi/c2c/v2/friendly/c2c/adv/search"
+BINANCE_ASSET = "USDT"
+BINANCE_FIAT = "VES"
+BINANCE_TRADE_TYPE = "SELL"
 # ── API ───────────────────────────────────────────────────────────────────────
 API_V1_PREFIX = "/api/v1"
 HISTORY_LIMIT = 10            # rows shown in dashboard table

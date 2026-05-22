@@ -15,6 +15,7 @@ class Rates(BaseModel):
     CNY: Optional[float] = None
     TRY: Optional[float] = None
     RUB: Optional[float] = None
+    BINANCE: Optional[float] = None
 
 
 class ExchangeRecord(BaseModel):

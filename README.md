@@ -10,6 +10,7 @@ oficiales del **Banco Central de Venezuela (BCV)**.
 - **Scraper resiliente** con fallback multi-selector (sobrevive cambios menores en el HTML del BCV).
 - **Persistencia JSON** con upsert diario (no duplica registros).
 - **Dashboard web** con botón de actualización en tiempo real.
+- **Integración de Binance P2P** para mostrar el precio USDT/VES.
 - **API REST** documentada con Swagger/OpenAPI.
 
 ---

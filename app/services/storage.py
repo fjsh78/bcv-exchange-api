@@ -27,6 +27,15 @@ def _get_connection() -> sqlite3.Connection:
     return conn
 
 
+def _ensure_binance_column(conn: sqlite3.Connection) -> None:
+    row = conn.execute(
+        "PRAGMA table_info(exchange_records)"
+    ).fetchall()
+    columns = [col[1] for col in row]
+    if "binance" not in columns:
+        conn.execute("ALTER TABLE exchange_records ADD COLUMN binance REAL")
+
+
 def _init_db() -> None:
     with _get_connection() as conn:
         conn.execute(
@@ -39,10 +48,12 @@ def _init_db() -> None:
                 cny REAL,
                 try_rate REAL,
                 rub REAL,
+                binance REAL,
                 timestamp TEXT NOT NULL
             )
             """
         )
+        _ensure_binance_column(conn)
     _migrate_json_if_present()
 
 
@@ -66,8 +77,8 @@ def _migrate_json_if_present() -> None:
                 conn.execute(
                     """
                     INSERT OR IGNORE INTO exchange_records
-                        (id, date, usd, eur, cny, try_rate, rub, timestamp)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                        (id, date, usd, eur, cny, try_rate, rub, binance, timestamp)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         raw["id"],
@@ -77,6 +88,7 @@ def _migrate_json_if_present() -> None:
                         rates.CNY,
                         rates.TRY,
                         rates.RUB,
+                        rates.BINANCE,
                         raw["timestamp"],
                     ),
                 )
@@ -95,6 +107,7 @@ def _row_to_record(row: sqlite3.Row) -> ExchangeRecord:
             CNY=row["cny"],
             TRY=row["try_rate"],
             RUB=row["rub"],
+            BINANCE=row["binance"],
         ),
         timestamp=row["timestamp"],
     )
@@ -140,14 +153,15 @@ def upsert(rates: Rates) -> ExchangeRecord:
         conn.execute(
             """
             INSERT INTO exchange_records
-                (date, usd, eur, cny, try_rate, rub, timestamp)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+                (date, usd, eur, cny, try_rate, rub, binance, timestamp)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(date) DO UPDATE SET
                 usd = excluded.usd,
                 eur = excluded.eur,
                 cny = excluded.cny,
                 try_rate = excluded.try_rate,
                 rub = excluded.rub,
+                binance = excluded.binance,
                 timestamp = excluded.timestamp
             """,
             (
@@ -157,6 +171,7 @@ def upsert(rates: Rates) -> ExchangeRecord:
                 rates.CNY,
                 rates.TRY,
                 rates.RUB,
+                rates.BINANCE,
                 now_str,
             ),
         )

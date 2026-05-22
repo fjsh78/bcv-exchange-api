@@ -488,6 +488,17 @@
       <div class="card-sub">Bs. por 1 RUB</div>
     </div>
 
+    <div class="currency-card usd">
+      <div class="card-symbol">B</div>
+      <div class="card-name">BINANCE &mdash; USDT/VES</div>
+      {% if latest.rates.BINANCE is not none %}
+        <div class="card-value">{{ "%.8f" | format(latest.rates.BINANCE) }}</div>
+      {% else %}
+        <div class="card-value no-data">No disponible</div>
+      {% endif %}
+      <div class="card-sub">Bs. por 1 USDT</div>
+    </div>
+
   </div>
 
   <!-- meta pills -->
@@ -519,6 +530,7 @@
           <th>CNY</th>
           <th>TRY</th>
           <th>RUB</th>
+          <th>BINANCE</th>
           <th>Actualizado</th>
         </tr>
       </thead>
@@ -532,6 +544,7 @@
           <td>{% if rec.rates.CNY is not none %}{{ "%.5f" | format(rec.rates.CNY) }}{% else %}<span class="null-cell">—</span>{% endif %}</td>
           <td>{% if rec.rates.TRY is not none %}{{ "%.5f" | format(rec.rates.TRY) }}{% else %}<span class="null-cell">—</span>{% endif %}</td>
           <td>{% if rec.rates.RUB is not none %}{{ "%.5f" | format(rec.rates.RUB) }}{% else %}<span class="null-cell">—</span>{% endif %}</td>
+          <td>{% if rec.rates.BINANCE is not none %}{{ "%.5f" | format(rec.rates.BINANCE) }}{% else %}<span class="null-cell">—</span>{% endif %}</td>
           <td class="null-cell">{{ rec.timestamp[11:16] }}</td>
         </tr>
         {% endfor %}

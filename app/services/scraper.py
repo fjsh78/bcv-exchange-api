@@ -18,6 +18,10 @@ from bs4 import BeautifulSoup
 
 from app.config import (
     BCV_URL,
+    BINANCE_ASSET,
+    BINANCE_FIAT,
+    BINANCE_P2P_URL,
+    BINANCE_TRADE_TYPE,
     CURRENCY_SELECTORS,
     REQUEST_HEADERS,
     REQUEST_TIMEOUT,
@@ -101,6 +105,46 @@ def _try_selector(soup: BeautifulSoup, currency: str) -> Optional[float]:
     import urllib3
     urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
+def _fetch_binance_rate() -> Optional[float]:
+    """Query Binance P2P for the current USDT/VES price."""
+    payload = {
+        "asset": BINANCE_ASSET,
+        "fiat": BINANCE_FIAT,
+        "merchantCheck": False,
+        "page": 1,
+        "rows": 1,
+        "tradeType": BINANCE_TRADE_TYPE,
+    }
+    headers = {
+        **REQUEST_HEADERS,
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+    }
+
+    logger.info("Fetching Binance P2P price: %s/%s", BINANCE_ASSET, BINANCE_FIAT)
+    response = requests.post(BINANCE_P2P_URL, json=payload, headers=headers, timeout=REQUEST_TIMEOUT)
+    if not response.ok:
+        logger.warning("Binance P2P returned HTTP %s", response.status_code)
+        return None
+
+    data = response.json()
+    if not isinstance(data, dict):
+        logger.warning("Binance P2P returned unexpected payload")
+        return None
+
+    items = data.get("data") or []
+    if not items:
+        logger.warning("Binance P2P returned no data")
+        return None
+
+    try:
+        price_text = items[0]["adv"]["price"]
+        return _parse_value(str(price_text))
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Could not parse Binance price: %s", exc)
+        return None
+
+
 def fetch_rates() -> tuple[Rates, list[str]]:
     """
     Download and parse the BCV homepage.
@@ -118,10 +162,10 @@ def fetch_rates() -> tuple[Rates, list[str]]:
     logger.info("Fetching BCV page: %s", BCV_URL)
 
     response = requests.get(
-    BCV_URL,
-    headers=REQUEST_HEADERS,
-    timeout=REQUEST_TIMEOUT,
-    verify=False,
+        BCV_URL,
+        headers=REQUEST_HEADERS,
+        timeout=REQUEST_TIMEOUT,
+        verify=False,
     )
 
     if not response.ok:
@@ -139,9 +183,14 @@ def fetch_rates() -> tuple[Rates, list[str]]:
         if value is None:
             warnings.append(f"Could not extract value for {currency}")
 
+    binance_value = _fetch_binance_rate()
+    raw["BINANCE"] = binance_value
+    if binance_value is None:
+        warnings.append("Could not retrieve Binance USDT/VES price")
+
     rates = Rates(**raw)
     logger.info(
-        "Scrape complete. USD=%.5s  warnings=%d",
-        str(raw.get("USD")), len(warnings),
+        "Scrape complete. USD=%.5s BINANCE=%.5s warnings=%d",
+        str(raw.get("USD")), str(raw.get("BINANCE")), len(warnings),
     )
     return rates, warnings
