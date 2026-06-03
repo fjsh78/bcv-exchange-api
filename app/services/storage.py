@@ -15,6 +15,7 @@ from typing import List, Optional
 
 from app.config import DB_FILE
 from app.models import ExchangeRecord, Rates
+from app.services.migration import check_and_migrate
 
 logger = logging.getLogger("bcv.storage")
 _lock = threading.Lock()
@@ -42,7 +43,7 @@ def _init_db() -> None:
             """
             CREATE TABLE IF NOT EXISTS exchange_records (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                date TEXT NOT NULL UNIQUE,
+                date TEXT NOT NULL,
                 usd REAL,
                 eur REAL,
                 cny REAL,
@@ -54,6 +55,7 @@ def _init_db() -> None:
             """
         )
         _ensure_binance_column(conn)
+        check_and_migrate(conn)
     _migrate_json_if_present()
 
 
@@ -138,13 +140,13 @@ def get_by_date(date_str: str) -> Optional[ExchangeRecord]:
     """Return the record for *date_str* (YYYY-MM-DD), or None."""
     with _lock, _get_connection() as conn:
         row = conn.execute(
-            "SELECT * FROM exchange_records WHERE date = ?",
+            "SELECT * FROM exchange_records WHERE date = ? ORDER BY id DESC LIMIT 1",
             (date_str,),
         ).fetchone()
     return _row_to_record(row) if row else None
 
 
-def upsert(rates: Rates) -> ExchangeRecord:
+def add_record(rates: Rates) -> ExchangeRecord:
     """Insert or update today's record in SQLite."""
     today = date.today().isoformat()
     now_str = datetime.now().isoformat(timespec="seconds")
@@ -155,14 +157,6 @@ def upsert(rates: Rates) -> ExchangeRecord:
             INSERT INTO exchange_records
                 (date, usd, eur, cny, try_rate, rub, binance, timestamp)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT(date) DO UPDATE SET
-                usd = excluded.usd,
-                eur = excluded.eur,
-                cny = excluded.cny,
-                try_rate = excluded.try_rate,
-                rub = excluded.rub,
-                binance = excluded.binance,
-                timestamp = excluded.timestamp
             """,
             (
                 today,
@@ -176,7 +170,7 @@ def upsert(rates: Rates) -> ExchangeRecord:
             ),
         )
         row = conn.execute(
-            "SELECT * FROM exchange_records WHERE date = ?",
+            "SELECT * FROM exchange_records WHERE date = ? ORDER BY id DESC LIMIT 1",
             (today,),
         ).fetchone()
 
