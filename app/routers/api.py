@@ -53,7 +53,7 @@ def refresh_rates() -> ScrapeResult:
             ),
         )
 
-    record = storage.upsert(rates)
+    record = storage.add_record(rates)
 
     message = "Tasas actualizadas correctamente."
     if warnings:
