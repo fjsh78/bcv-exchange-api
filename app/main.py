@@ -54,7 +54,7 @@ def scheduled_refresh():
     try:
         logger.info("⏰ Scheduled refresh starting...")
         rates, warnings = scraper.fetch_rates()
-        record = storage.upsert(rates)
+        record = storage.add_record(rates)
         logger.info("✅ Scheduled refresh OK — USD=%.8f", record.rates.USD or 0)
         if warnings:
             logger.warning("Warnings: %s", "; ".join(warnings))
